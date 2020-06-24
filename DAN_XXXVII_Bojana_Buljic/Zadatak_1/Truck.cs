@@ -10,16 +10,20 @@ namespace Zadatak_1
 {
     public class Truck
     {
-        static SemaphoreSlim semaphore = new SemaphoreSlim(2, 2);
-        static string routesFile = @"../../Routes.txt";
-        static readonly object locker = new object();
-        static List<int> listOfRouteNo = new List<int>();
+        public Random rnd = new Random();
+        public SemaphoreSlim semaphore = new SemaphoreSlim(2, 2);
+        private readonly string routesFile = @"../../Routes.txt";
+        public int[] bestRoutes = new int[10];
+        public Thread[] trucks = new Thread[10];
 
-        public Thread thread;
-        public int routeNo { get; set; }
-        int[] bestRoutes = new int[10];        
-        string name { get; set; }
-        
+        static readonly object locker = new object();
+        public static List<int> listOfRouteNo = new List<int>();
+
+        int loadingTime { get; set; }
+        double unloadingTime { get; set; }
+
+        int waitTime;
+
 
         /// <summary>
         /// Method for generating random route numbers and writing it into file Routes.txt
@@ -27,26 +31,22 @@ namespace Zadatak_1
         public void GenerateRouteNo()
         {
             int[] routes = new int[1000];
-            Random rnd = new Random();
-
-            for (int i = 0; i < routes.Length; i++)
-            {
-                routes[i] = rnd.Next(1, 5001);
-            }
 
             //locks the code until writing to file is finished
-            //lock (locker)
-            //{
-            using (StreamWriter sw = new StreamWriter(routesFile))
+            lock (routesFile)
             {
-
-                for (int i = 0; i < routes.Length; i++)
+                using (StreamWriter sw = new StreamWriter(routesFile))
                 {
-                    sw.WriteLine(routes[i]);
+
+                    for (int i = 0; i < routes.Length; i++)
+                    {
+                        routes[i] = rnd.Next(1, 5001);
+                        sw.WriteLine(routes[i]);
+                    }
                 }
+                //signal that writing in file is finished
+                Monitor.Pulse(routesFile);
             }
-            //    Monitor.Pulse(locker);
-            //}
 
         }
 
@@ -56,39 +56,43 @@ namespace Zadatak_1
         public void SelectBestRoutes()
         {
             int number;
-            //lock (locker)
-            //{
-            Random rnd = new Random();
-            Thread.Sleep(rnd.Next(1, 3001));
-            //Monitor.Wait(locker);
-            using (StreamReader reader = File.OpenText(routesFile))
+            lock (routesFile)
             {
-                string line = " ";
-                while ((line = reader.ReadLine()) != null)
+                //wait 3000 ms until file is created
+                while (!File.Exists(routesFile))
                 {
-                    bool convert = Int32.TryParse(line, out number);
-                    if (convert && number % 3 == 0)
-                    {
-                        //Add into list only numbers divisible by 3
-                        listOfRouteNo.Add(number);
+                    Monitor.Wait(routesFile, 3000);
+                }
 
+                //reading lines from file
+                using (StreamReader reader = File.OpenText(routesFile))
+                {
+                    string line = " ";
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        //converting each string into number
+                        bool convert = Int32.TryParse(line, out number);                        
+                        if (convert && number % 3 == 0)
+                        {
+                            //Add into list only numbers divisible by 3
+                            listOfRouteNo.Add(number);
+
+                        }
                     }
                 }
-            }
-            //sorting list from lowest to largest number
-            listOfRouteNo.Sort();
-            //Filling array with 10 minimum and distinct values from list
-            bestRoutes = listOfRouteNo.Distinct().Take(10).ToArray();
+                //sorting list from lowest to largest number
+                listOfRouteNo.Sort();
+                //Filling array with 10 minimum and distinct values from list
+                bestRoutes = listOfRouteNo.Distinct().Take(10).ToArray();
 
-            Console.WriteLine("Best routes are selected. \nManager chooses routes for trucks.\n");
-            for (int i = 0; i < bestRoutes.Length; i++)
-            {
-                Console.WriteLine("Truck {0} has route No. {1}", i + 1, bestRoutes[i]);
-                routeNo = bestRoutes[i];
-                name = string.Format((i + 1).ToString());
+                Console.WriteLine("Best routes are selected. \nManager chooses next routes for trucks:\n");
+                //writing selected best routes on Console
+                for (int i = 0; i < bestRoutes.Length; i++)
+                {
+                    Console.WriteLine(bestRoutes[i]);
+                }
+                Console.WriteLine("\nYou can start loading trucks.\n");
             }
-            Console.WriteLine("\nYou can start loading trucks.");
-            //}
 
         }
     }
