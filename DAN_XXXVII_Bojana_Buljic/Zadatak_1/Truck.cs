@@ -12,6 +12,7 @@ namespace Zadatak_1
     /// Class for simulating truck company operations.
     /// Creates threads for performing tasks of generating and selecting routes and Loading/Unloading trucks
     /// </summary>
+
     public class Truck
     {
         public Random rnd = new Random();
@@ -24,10 +25,78 @@ namespace Zadatak_1
 
         static readonly object locker = new object();
         public static List<int> listOfRouteNo = new List<int>();
-
         double unloadingTime { get; set; }
         //counter for threads 
         int count = 0;
+      
+        /// <summary>
+        /// Method for generating random route numbers and writing it into file Routes.txt
+        /// </summary>
+        public void GenerateRouteNo()
+        {
+            int[] routes = new int[1000];
+
+            //locks the code until writing to file is finished
+            lock (routesFile)
+            {
+                using (StreamWriter sw = new StreamWriter(routesFile))
+                {
+
+                    for (int i = 0; i < routes.Length; i++)
+                    {
+                        routes[i] = rnd.Next(1, 5001);
+                        sw.WriteLine(routes[i]);
+                    }
+                }
+                //signal that writing in file is finished
+                Monitor.Pulse(routesFile);
+            }
+        }
+      
+        /// <summary>
+        /// Method reads file Routes and creates array with selected 10 best routes
+        /// </summary>
+        public void SelectBestRoutes()
+        {
+            int number;
+            lock (routesFile)
+            {
+                //wait 3000 ms until file is created
+                while (!File.Exists(routesFile))
+                {
+                    Monitor.Wait(routesFile, 3000);
+                }
+
+                //reading lines from file
+                using (StreamReader reader = File.OpenText(routesFile))
+                {
+                    string line = " ";
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        //converting each string into number
+                        bool convert = Int32.TryParse(line, out number);                        
+                        if (convert && number % 3 == 0)
+                        {
+                            //Add into list only numbers divisible by 3
+                            listOfRouteNo.Add(number);
+
+                        }
+                    }
+                }
+                //sorting list from lowest to largest number
+                listOfRouteNo.Sort();
+                //Filling array with 10 minimum and distinct values from list
+                bestRoutes = listOfRouteNo.Distinct().Take(10).ToArray();
+
+                Console.WriteLine("Best routes are selected. \nManager chooses next routes for trucks:\n");
+                //writing selected best routes on Console
+                for (int i = 0; i < bestRoutes.Length; i++)
+                {
+                    Console.WriteLine(bestRoutes[i]);
+                }
+                Console.WriteLine("\nYou can start loading trucks.\n");
+            }
+        }
        
         /// <summary>
         /// Method performing loading/unloading trucks
@@ -76,7 +145,6 @@ namespace Zadatak_1
                 Console.WriteLine("{0} returning to starting point.\n", name);
                 Thread.Sleep(3000);
                 Console.WriteLine("{0} returned to starting point after 3000 ms.", name);
-
             }
             else
             {
@@ -85,7 +153,6 @@ namespace Zadatak_1
                 Thread.Sleep(Convert.ToInt32(unloadingTime));
                 Console.WriteLine(name + " is unloaded.\n");
             }
-
         }
 
         /// <summary>
@@ -128,6 +195,5 @@ namespace Zadatak_1
                 trucks[i].Join();
             }
         }
-
     }
 }
