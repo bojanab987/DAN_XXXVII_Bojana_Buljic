@@ -22,11 +22,8 @@ namespace Zadatak_1
         public static List<int> listOfRouteNo = new List<int>();
 
         double unloadingTime { get; set; }
-
-        int waitTime;
-        //counter for locked object
+        //counter for threads 
         int count = 0;
-
        
         /// <summary>
         /// Method performing loading/unloading trucks
@@ -35,7 +32,7 @@ namespace Zadatak_1
         public void LoadingUnloadingTrucks(object routeNo)
         {
             var name = Thread.CurrentThread.Name;
-            int loadingTime = rnd.Next(500, 5001);
+            int loadingTime = rnd.Next(500, 5001);            
             semaphore.Wait();
             Console.WriteLine(name + " is loading...\n");
             Thread.Sleep(loadingTime);
@@ -64,7 +61,7 @@ namespace Zadatak_1
             }
 
             //delivery waiting time
-            waitTime = rnd.Next(500, 5001);
+            int waitTime = rnd.Next(500, 5001);
             Console.WriteLine("\n{0} started to destination. \nDelivery waiting time is {1} milliseconds.\n", name, waitTime);
             //Thread waits for 3000 ms
             Thread.Sleep(3000);
@@ -84,6 +81,48 @@ namespace Zadatak_1
                 Console.WriteLine(name + " is unloaded.\n");
             }
 
+        }
+
+        /// <summary>
+        /// Method creating and starting all threads
+        /// </summary>
+        public void PerformDelivery()
+        {
+            //Creating and naming thread for generating routes
+            Thread getRoutes = new Thread(GenerateRouteNo)
+            {
+                Name = "routeGenerator"
+            };
+
+            //Creating and naming thread for manager's job-selecting best routes
+            Thread manager = new Thread(SelectBestRoutes)
+            {
+                Name = "manager"
+            };
+
+            //starting threads
+            getRoutes.Start();
+            manager.Start();
+
+            //Joining threads-wait till these threads are finished
+            getRoutes.Join();
+            manager.Join();
+
+            //creating and starting truck threads from thread array
+            for (int i = 0; i < 10; i++)
+            {
+                int routeNo = bestRoutes[i];
+                trucks[i] = new Thread(LoadingUnloadingTrucks)
+                {
+                    //naming each thread
+                    Name = String.Format("Truck_{0}", i + 1)
+                };
+                trucks[i].Start(bestRoutes[i]);
+            }
+            for (int i = 0; i < trucks.Length; i++)
+            {
+                trucks[i].Join();
+            }
         }
 
     }
