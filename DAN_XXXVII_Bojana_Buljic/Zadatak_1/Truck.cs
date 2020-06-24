@@ -34,13 +34,13 @@ namespace Zadatak_1
             var name = Thread.CurrentThread.Name;
             int loadingTime = rnd.Next(500, 5001);            
             semaphore.Wait();
-            Console.WriteLine(name + " is loading...\n");
+            Console.WriteLine(name + " is loading for {0} ms ...\n", loadingTime);
             Thread.Sleep(loadingTime);
 
             Console.WriteLine(name + " is loaded.\n");
             semaphore.Release();
 
-            //wait for all Trucks to load and then asign route for each of them
+            //thread counter..waits for all Trucks to load and then assign route for each of them
             count++;
             while (count != 10)
             {
@@ -69,8 +69,9 @@ namespace Zadatak_1
             if (waitTime > 3000)
             {
                 Console.WriteLine("Order for {0} is cancelled.", name);
-                Console.WriteLine("{0} returns to starting point.\n", name);
+                Console.WriteLine("{0} returning to starting point.\n", name);
                 Thread.Sleep(3000);
+                Console.WriteLine("{0} returned to starting point after 3000 milliseconds.", name);
 
             }
             else
