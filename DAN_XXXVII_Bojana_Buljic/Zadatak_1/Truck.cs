@@ -8,6 +8,10 @@ using System.Threading.Tasks;
 
 namespace Zadatak_1
 {
+    /// <summary>
+    /// Class for simulating truck company operations.
+    /// Creates threads for performing tasks of generating and selecting routes and Loading/Unloading trucks
+    /// </summary>
     public class Truck
     {
         public Random rnd = new Random();
@@ -71,7 +75,7 @@ namespace Zadatak_1
                 Console.WriteLine("Order for {0} is cancelled.", name);
                 Console.WriteLine("{0} returning to starting point.\n", name);
                 Thread.Sleep(3000);
-                Console.WriteLine("{0} returned to starting point after 3000 milliseconds.", name);
+                Console.WriteLine("{0} returned to starting point after 3000 ms.", name);
 
             }
             else
@@ -112,7 +116,6 @@ namespace Zadatak_1
             //creating and starting truck threads from thread array
             for (int i = 0; i < 10; i++)
             {
-                int routeNo = bestRoutes[i];
                 trucks[i] = new Thread(LoadingUnloadingTrucks)
                 {
                     //naming each thread
